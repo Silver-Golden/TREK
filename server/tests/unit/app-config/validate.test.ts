@@ -36,6 +36,12 @@ describe('validateEnvAtBoot', () => {
     expect(() => validateEnvAtBoot({})).not.toThrow();
   });
 
+  it('requires an absolute state directory when one is set', () => {
+    expect(envSchema.safeParse({ TREK_STATE_DIR: '/var/lib/trek' }).success).toBe(true);
+    expect(envSchema.safeParse({ TREK_STATE_DIR: '' }).success).toBe(true);
+    expect(envSchema.safeParse({ TREK_STATE_DIR: 'relative/path' }).success).toBe(false);
+  });
+
   it('passes with a representative valid environment', () => {
     expect(() =>
       validateEnvAtBoot({

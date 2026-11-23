@@ -142,7 +142,14 @@ async function main() {
   console.log('A backup of the database will be created before any changes are made.\n');
 
   // Resolve DB path
-  const dbPath = path.resolve(process.env.DB_PATH ?? path.join(__dirname, '../data/travel.db'));
+  const stateDir = process.env.TREK_STATE_DIR?.trim();
+  if (stateDir && !path.isAbsolute(stateDir)) {
+    console.error('TREK_STATE_DIR must be an absolute path.');
+    process.exit(1);
+  }
+  const dbPath = path.resolve(
+    process.env.DB_PATH ?? path.join(stateDir || path.join(__dirname, '..'), 'data/travel.db'),
+  );
 
   if (!fs.existsSync(dbPath)) {
     console.error(`Database not found at: ${dbPath}`);

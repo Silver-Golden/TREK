@@ -19,6 +19,7 @@ import {
 } from './parsers';
 import { SUPPORTED_LANGUAGE_CODES } from '@trek/shared';
 
+import path from 'node:path';
 import { z } from 'zod';
 
 /** Present-but-malformed fails; unset/blank always passes (defaults apply). */
@@ -157,6 +158,7 @@ export const envSchema = z.object({
 
   // Data / paths
   TREK_DB_FILE: anyString,
+  TREK_STATE_DIR: optionalWith((v) => path.isAbsolute(v), 'must be an absolute path'),
   // The two SQLite pragmas are deliberately unvalidated: a typo here must fall
   // back and warn rather than abort boot, because reset-admin.js — the way out
   // of a locked-out instance — reads the same variables and is not covered by

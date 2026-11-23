@@ -73,3 +73,8 @@ minio-licence.key
 
 .run
 .full-review
+
+# Nix
+## This is a symlink so sometimes counts as folder, othertimes as file
+result
+result/

@@ -37,3 +37,5 @@ server/vitest.config.ts
 **/*.spec.ts
 scripts/
 charts/
+result
+result/

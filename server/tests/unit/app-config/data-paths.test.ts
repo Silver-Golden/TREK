@@ -59,6 +59,19 @@ describe('resolveDataPaths', () => {
     vi.stubEnv('TREK_DB_FILE', '');
     expect(resolveDataPaths().dbFile).toBe(path.join(SERVER_DIR, 'data', 'travel.db'));
   });
+
+  it('uses TREK_STATE_DIR for data and uploads without changing the database override', () => {
+    vi.stubEnv('TREK_STATE_DIR', '/var/lib/trek');
+    let paths = resolveDataPaths();
+    expect(paths.dataDir).toBe('/var/lib/trek/data');
+    expect(paths.uploadsDir).toBe('/var/lib/trek/uploads');
+    expect(paths.dbFile).toBe('/var/lib/trek/data/travel.db');
+    vi.stubEnv('TREK_DB_FILE', '/elsewhere/travel.db');
+    paths = resolveDataPaths();
+    expect(paths.dbFile).toBe('/elsewhere/travel.db');
+    vi.stubEnv('TREK_STATE_DIR', ' ');
+    expect(resolveDataPaths().dataDir).toBe(path.join(SERVER_DIR, 'data'));
+  });
 });
 
 describe('every consumer resolves the same layout', () => {
