@@ -4,6 +4,7 @@
 - [[Install: Docker|Install-Docker]]
 - [[Install: Docker Compose|Install-Docker-Compose]]
 - [[Install: Helm|Install-Helm]]
+- [[Install: NixOS|Install-NixOS]]
 - [[Install: Proxmox VE (LXC)|Install-Proxmox]]
 - [[Install: Unraid|Install-Unraid]]
 - [[Install: TrueNAS SCALE|Install-TrueNAS-SCALE]]
