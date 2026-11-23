@@ -30,46 +30,65 @@ describe('classify', () => {
   it('runs the tests and the image for a wiki change, markdown or not', () => {
     // The image ships wiki/ as the in-app help, help.test.ts serves its pages
     // and images, and the client's help registry test reads its headings.
-    assert.deepEqual(classify(['wiki/Updating.md']), { code: true, image: true, deploy: false });
-    assert.deepEqual(classify(['wiki/assets/TripPlanner.png']), { code: true, image: true, deploy: false });
+    assert.deepEqual(classify(['wiki/Updating.md']), { code: true, image: true, nix: true, deploy: false });
+    assert.deepEqual(classify(['wiki/assets/TripPlanner.png']), { code: true, image: true, nix: true, deploy: false });
   });
 
   it('runs the tests for markdown that a test reads as input', () => {
     // wiki.test.ts parses server/tests/fixtures/wiki/, so those pages are not docs.
-    assert.deepEqual(classify(['server/tests/fixtures/wiki/Sample.md']), { code: true, image: true, deploy: false });
+    assert.deepEqual(classify(['server/tests/fixtures/wiki/Sample.md']), { code: true, image: true, nix: true, deploy: false });
     assert.equal(classify(['client/tests/fixtures/notes.md']).code, true);
   });
 
   it('runs the tests and the image for a server change', () => {
-    assert.deepEqual(classify(['server/src/nest/weather/weather.service.ts']), { code: true, image: true, deploy: false });
+    assert.deepEqual(classify(['server/src/nest/weather/weather.service.ts']), { code: true, image: true, nix: true, deploy: false });
   });
 
   it('runs the tests but not the image for a plugin-sdk change', () => {
-    assert.deepEqual(classify(['plugin-sdk/src/index.ts']), { code: true, image: false, deploy: false });
+    assert.deepEqual(classify(['plugin-sdk/src/index.ts']), { code: true, image: false, nix: false, deploy: false });
   });
 
   it('runs the tests but not the image for a change to the shared ratchet code', () => {
-    assert.deepEqual(classify(['scripts/lib/ratchet.mjs']), { code: true, image: false, deploy: false });
+    assert.deepEqual(classify(['scripts/lib/ratchet.mjs']), { code: true, image: false, nix: false, deploy: false });
   });
 
   it('runs the tests but not the image for a knip config change', () => {
-    assert.deepEqual(classify(['knip.jsonc']), { code: true, image: false, deploy: false });
+    assert.deepEqual(classify(['knip.jsonc']), { code: true, image: false, nix: false, deploy: false });
   });
 
   it('runs the image but not the tests for a .dockerignore change', () => {
-    assert.deepEqual(classify(['.dockerignore']), { code: false, image: true, deploy: false });
+    assert.deepEqual(classify(['.dockerignore']), { code: false, image: true, nix: false, deploy: false });
   });
 
   it('runs the chart checks and the tests for a chart template or a compose file', () => {
     // config-templates.test.ts reads docker-compose.yml and the chart to pin
     // them to the code defaults, so a change to either runs the tests too.
-    assert.deepEqual(classify(['charts/trek/templates/deployment.yaml']), { code: true, image: false, deploy: true });
-    assert.deepEqual(classify(['charts/trek/values.yaml']), { code: true, image: false, deploy: true });
-    assert.deepEqual(classify(['docker-compose.yml']), { code: true, image: false, deploy: true });
-    assert.deepEqual(classify(['docker-compose.minio-test.yml']), { code: true, image: false, deploy: true });
+    assert.deepEqual(classify(['charts/trek/templates/deployment.yaml']), { code: true, image: false, nix: false, deploy: true });
+    assert.deepEqual(classify(['charts/trek/values.yaml']), { code: true, image: false, nix: false, deploy: true });
+    assert.deepEqual(classify(['docker-compose.yml']), { code: true, image: false, nix: false, deploy: true });
+    assert.deepEqual(classify(['docker-compose.minio-test.yml']), { code: true, image: false, nix: false, deploy: true });
     assert.equal(classify(['charts/README.md']).deploy, false);
     assert.equal(classify(['server/docker-compose.yml']).deploy, false);
     assert.equal(classify(['docs/docker-compose.yml']).code, false);
+  });
+
+  it('runs Nix checks for the flake and every package input, including lockfile-only updates', () => {
+    for (const file of [
+      'flake.nix', 
+      'flake.lock', 
+      'nix/package.nix', 
+      'nix/module.nix', 
+      'nix/test.nix',
+      'package.json', 
+      'package-lock.json', 
+      'shared/package.json', 
+      'server/src/index.ts',
+      'client/src/main.tsx', 
+      'wiki/Updating.md'
+    ]) {
+      assert.equal(classify([file]).nix, true, file);
+    }
+    assert.equal(classify(['nix/README.md']).nix, false);
   });
 
   it('runs everything when the workflow or the classifier itself changes', () => {
@@ -88,8 +107,8 @@ describe('classify', () => {
   });
 
   it('reads CRLF lists the same as LF ones', () => {
-    assert.deepEqual(classify(['README.md\r', 'server/src/index.ts\r']), { code: true, image: true, deploy: false });
-    assert.deepEqual(classify(['README.md\r', 'charts/trek/values.yaml\r']), { code: true, image: false, deploy: true });
+    assert.deepEqual(classify(['README.md\r', 'server/src/index.ts\r']), { code: true, image: true, nix: true, deploy: false });
+    assert.deepEqual(classify(['README.md\r', 'charts/trek/values.yaml\r']), { code: true, image: false, nix: false, deploy: true });
   });
 });
 
@@ -101,14 +120,14 @@ describe('the command line', () => {
     writeFileSync(output, '');
     const result = run(['--files', list], { GITHUB_OUTPUT: output });
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, 'code=true\nimage=false\ndeploy=true\n');
-    assert.equal(readFileSync(output, 'utf8'), 'code=true\nimage=false\ndeploy=true\n');
+    assert.equal(result.stdout, 'code=true\nimage=false\nnix=false\ndeploy=true\n');
+    assert.equal(readFileSync(output, 'utf8'), 'code=true\nimage=false\nnix=false\ndeploy=true\n');
   });
 
   it('turns everything on with --all', () => {
     const result = run(['--all']);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, 'code=true\nimage=true\ndeploy=true\n');
+    assert.equal(result.stdout, 'code=true\nimage=true\nnix=true\ndeploy=true\n');
   });
 
   it('fails on a list it cannot read', () => {
@@ -167,7 +186,7 @@ describe('the file list test.yml builds', () => {
   it('lists a moved file under its old path, so a move out of an area still runs it', () => {
     const files = changedAfterMove('server/src/a.ts', 'docs/a.ts');
     assert.ok(files.includes('server/src/a.ts'), `old path missing from ${JSON.stringify(files)}`);
-    assert.deepEqual(classify(files), { code: true, image: true, deploy: false });
+    assert.deepEqual(classify(files), { code: true, image: true, nix: true, deploy: false });
   });
 
   it('runs the chart checks when a chart template moves out of charts/', () => {

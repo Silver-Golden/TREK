@@ -69,6 +69,20 @@ export const AREAS = {
     '.dockerignore',
     ...ALWAYS,
   ],
+  // Everything the flake builds or ships, including the npm lockfile.
+  // A dependency-only update must recheck npmDepsHash even with no source diff.
+  nix: [
+    'server/',
+    'client/',
+    'shared/',
+    'wiki/',
+    'nix/',
+    'flake.nix',
+    'flake.lock',
+    'package.json',
+    'package-lock.json',
+    ...ALWAYS,
+  ],
   // The Helm chart and the compose files.
   deploy: ['charts/', /^docker-compose[^/]*\.ya?ml$/, ...ALWAYS],
 };

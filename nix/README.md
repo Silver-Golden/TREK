@@ -1,7 +1,9 @@
 # Nix
 
-The flake packages the server, its shared contracts and the production web client for x86-64 and AArch64 Linux.   
-It uses the repository's npm lockfile, after changing that lockfile update `npmDepsHash` in `nix/package.nix` using the hash reported by a build with `lib.fakeHash`.
+The flake packages the server, its shared contracts and the production web client for x86-64 Linux.
+
+## Usage
+### Nix
 
 Build and run from a checkout with Nix flakes enabled:
 
@@ -16,6 +18,7 @@ Set `TREK_STATE_DIR` to an absolute path to use another writable parent.
 See `server/.env.example` for the available environment variables.  
 Production defaults require secure cookies, so deploy behind HTTPS, for local HTTP only, set `COOKIE_SECURE=false`.
 
+### NixOS
 For NixOS, add this repository as a flake input and import its module:
 
 ```nix
@@ -59,3 +62,19 @@ It uses systemd's `EnvironmentFile=` syntax, not shell expansion.
 
 The optional KItinerary booking extractor is not bundled.  
 Install it separately and set `KITINERARY_EXTRACTOR_PATH` to its executable to enable that feature.
+
+## Development
+### Updating
+It uses the repository's npm lockfile, after changing that lockfile update `npmDepsHash` in `nix/package.nix` using the hash reported by a build with ``npmDepsHash="";``.
+
+### Testing
+CI builds the package and boots the NixOS module in a VM, including a restart and persistence check.   
+Run the same check on x86-64 Linux with KVM and flakes:
+
+```sh
+nix build --no-link -L .#checks.x86_64-linux.nixos
+```
+
+### CI/CD
+A task has been added to [test.yml](../.github/workflows/test.yml), it runs the command found in [Testing](#testing).  
+If the ``npmDepsHash`` has changed then it will fail, instructions on how to update are displayed in the output and in [Updating](#updating).  

@@ -17,5 +17,12 @@
 
       nixosModules.default = import ./nix/module.nix;
       nixosModules.trek = self.nixosModules.default;
+
+      checks = forAllSystems (pkgs: {
+        nixos = pkgs.callPackage ./nix/test.nix {
+          trekModule = self.nixosModules.default;
+          trekPackage = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
+        };
+      });
     };
 }

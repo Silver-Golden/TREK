@@ -45,6 +45,7 @@ permissions:
 #   Client: End-to-End       the app in Chromium and WebKit
 #   Plugin SDK: Types & Coverage
 #   Repo: Docker Image       builds the image and boots it until ready
+#   Repo: Nix & NixOS        builds the locked package and tests the NixOS service in a VM
 #   Repo: Helm Chart & Compose
 #   Repo: Sonar Scan         SonarCloud analysis, not required
 #   ci-ok                    the one required check (below)
@@ -68,7 +69,7 @@ permissions:
 #     the 14 shards and about a dozen other jobs; seven of those (parity, the
 #     SDK, the bundle, S3, Postgres, shared coverage, the chart) are done in
 #     a minute or two, so what queues at the start waits about that long. The
-#     jobs that run for minutes (shards, gates, e2e, the image) must not
+#     jobs that run for minutes (shards, gates, e2e, the image, nix) must not
 #     outnumber the 20 slots, or one of them waits for another to finish and
 #     the run grows by a whole job: a layout with six gate jobs did exactly
 #     that. Check the count before adding a long job or a shard.
@@ -125,6 +126,7 @@ jobs:
     outputs:
       code: ${{ steps.areas.outputs.code }}
       image: ${{ steps.areas.outputs.image }}
+      nix: ${{ steps.areas.outputs.nix }}
       deploy: ${{ steps.areas.outputs.deploy }}
     steps:
       - uses: actions/checkout@v6
@@ -1310,6 +1312,24 @@ jobs:
             docker compose -f "$f" config --quiet
           done
 
+  # Building the VM also builds the actual package and its fixed-output npm
+  # cache, so an out-of-date npmDepsHash fails rather than only evaluating.
+  nix:
+    name: 'Repo: Nix & NixOS'
+    needs: changes
+    if: needs.changes.outputs.nix == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31
+      - name: Require KVM
+        run: test -r /dev/kvm && test -w /dev/kvm
+      - name: Build TREK and test its NixOS service
+        run: nix build --no-link -L .#checks.x86_64-linux.nixos
+
   # The single check the branch ruleset requires. It needs every job that
   # gates a merge, so listing a job here is what makes it required. The scan
   # stays out (see the layout notes at the top).
@@ -1332,6 +1352,7 @@ jobs:
       - shared-coverage
       - plugin-sdk
       - docker-image
+      - nix
       - deploy-manifests
     # always(): without it a failed dependency would skip this job, and the
     # ruleset reads a skipped required check as passed.
