@@ -82,12 +82,10 @@ Ensure it provisions the file before TREK starts and restricts access to it.
 The decrypted file must use systemd `EnvironmentFile=` syntax, not shell expansion.   
 To choose the initial administrator, include both `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the secret.
 
-Environment-file values take precedence over `settings`, so do not set `TREK_STATE_DIR`, `NODE_ENV`, `HOST` or `PORT` there, the module manages them.   
-Restart the service after updating the secret:
-
-```bash
-sudo systemctl restart trek
-```
+Environment-file values take precedence over `settings`, so do not set `TREK_STATE_DIR`, `NODE_ENV`, `HOST` or `PORT` there, the module manages them.  
+TREK checks the environment file approximately once a minute and restarts if the file or its contents change.  
+A manually stopped service remains stopped.  
+If the file cannot be read, the check logs an error and retries.
 
 See [Environment-Variables](Environment-Variables) for the available settings.   
 The optional KItinerary booking extractor is not bundled, install it separately and set `KITINERARY_EXTRACTOR_PATH` to its executable to enable it.
