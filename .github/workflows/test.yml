@@ -10,7 +10,7 @@ permissions:
 # (the scanner picks the context up from the Actions environment).
 #
 # Job names read "<Area> <what>[ <variant>][ i/n]", the area one of Changes,
-# Shared, Server, Client, Docker or Sonar, with no colon, no parentheses and
+# Shared, Server, Client, Docker, Nix or Sonar, with no colon, no parentheses and
 # the slice last, so the checks list on a PR sorts by area. The job ids are
 # the names in kebab-case, and the jobs below stand in the same order.
 # scripts/ci/workflow-jobs.test.mjs holds the names to that form. What each
@@ -57,6 +57,7 @@ permissions:
 #   Docker and Helm          builds the image and boots it until ready, on
 #                            SQLite and on Postgres 18; lints and renders the
 #                            Helm chart and checks the compose files
+#   Nix NixOS                Builds the package and boots the NixOS service
 #   Sonar                    SonarCloud analysis, not required
 #   ci-ok                    the one required check (below)
 #
@@ -86,8 +87,8 @@ permissions:
 #     which one it was.
 #   - Job count: GitHub Team runs 60 Linux jobs of the organisation at once,
 #     the other workflows and other PRs included. A code change starts at
-#     most about 35 long jobs (today 34: the five gates, the 20 test slices,
-#     the six Postgres slices, the two e2e slices and the Docker job) plus two
+#     most about 35 long jobs (today 35: the five gates, the 20 test slices,
+#     the six Postgres slices, the two e2e slices, Docker and Nix) plus two
 #     short ones (Shared tests, Server S3), so two PR runs fit side by side
 #     and a third waits a minute or two for slots. The target is ci-ok within
 #     ten minutes of the push. The release pull request starts none of them:
@@ -176,6 +177,7 @@ jobs:
     outputs:
       code: ${{ steps.areas.outputs.code }}
       image: ${{ steps.areas.outputs.image }}
+      nix: ${{ steps.areas.outputs.nix }}
       deploy: ${{ steps.areas.outputs.deploy }}
       mirror: ${{ steps.areas.outputs.mirror }}
     steps:
@@ -1479,6 +1481,23 @@ jobs:
           # reviewable in a PR rather than buried in workflow YAML.
           args: -Dsonar.projectVersion=4.0.0
 
+  # A real build checks the fixed-output npm hash and boots the module.
+  nix:
+    name: 'Nix NixOS'
+    needs: changes
+    if: needs.changes.outputs.nix == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31
+      - name: Require KVM
+        run: test -r /dev/kvm && test -w /dev/kvm
+      - name: Build TREK and test its NixOS service
+        run: nix build --no-link -L .#checks.x86_64-linux.nixos
+
   # The single check the branch ruleset requires. It needs every job that
   # gates a merge, so listing a job here is what makes it required. The scan
   # stays out (see the layout notes at the top).
@@ -1499,6 +1518,7 @@ jobs:
       - client-coverage
       - client-e2e
       - docker
+      - nix
     # always(): without it a failed dependency would skip this job, and the
     # ruleset reads a skipped required check as passed.
     if: always()

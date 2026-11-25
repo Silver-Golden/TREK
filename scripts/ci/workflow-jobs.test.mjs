@@ -49,7 +49,7 @@ function needsOf(text) {
 // Every check name reads "<Area> <what>[ <variant>][ i/n]": the area first,
 // from a fixed set, so the checks list sorts by area; no colon, no
 // parentheses and no middle dot, and a slice only at the end.
-const NAME_FORM = /^(Changes|Shared|Server|Client|Docker|Sonar)( [^:·()]+)?$/;
+const NAME_FORM = /^(Changes|Shared|Server|Client|Docker|Nix|Sonar)( [^:·()]+)?$/;
 const SLICE_AT_END = /\$\{\{ matrix\.shard \}\}\/\d+$/;
 
 /** What is wrong with one job's check name, each said as the fix to make. */
@@ -58,7 +58,7 @@ function nameProblems(id, name) {
   const problems = [];
   if (!NAME_FORM.test(name)) {
     problems.push(
-      `${id}: "${name}" must start with Changes, Shared, Server, Client, Docker or Sonar and hold no colon, parentheses or middle dot`,
+      `${id}: "${name}" must start with Changes, Shared, Server, Client, Docker, Nix or Sonar and hold no colon, parentheses or middle dot`,
     );
   }
   if (name.includes(SHARD) && !SLICE_AT_END.test(name)) {
@@ -261,7 +261,7 @@ const MIRROR_ON = "needs.changes.outputs.mirror == 'true'";
 const STATUS_FUNCTION = /\b(always|cancelled|failure)\(\)/;
 // The terms that are false in mirror mode, where every area is off.
 const AREA_TERM =
-  /^(needs\.changes\.outputs\.(code|image|deploy) == 'true'|needs\.changes\.outputs\.mirror != 'true')$/;
+  /^(needs\.changes\.outputs\.(code|image|nix|deploy) == 'true'|needs\.changes\.outputs\.mirror != 'true')$/;
 
 /** Splits an expression at a top-level operator, outside parentheses and quotes. */
 function splitTop(expr, op) {
@@ -344,6 +344,7 @@ describe('the release pull request mirror', () => {
   it('reads a condition as skipping only when every alternative is off', () => {
     for (const condition of [
       "needs.changes.outputs.code == 'true'",
+      "needs.changes.outputs.nix == 'true'",
       "needs.changes.outputs.image == 'true' || needs.changes.outputs.deploy == 'true'",
       "needs.changes.outputs.code == 'true' && github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)",
       "${{ needs.changes.outputs.mirror != 'true' && github.ref == 'refs/heads/dev' }}",
