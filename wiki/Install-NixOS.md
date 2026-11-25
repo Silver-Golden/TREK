@@ -92,7 +92,9 @@ The optional KItinerary booking extractor is not bundled, install it separately 
 
 
 ## Backups and Updates
-Back up the entire `/var/lib/trek` directory, which contains the database, encryption and session keys, plugins, backups and uploads.   
+TREK stores its database, encryption and session keys, plugins, backups and uploads under `/var/lib/trek` by default.  
+Set `services.trek.stateDir` to another absolute directory beneath `/var/lib` to change both the state and working directory.  
+Back up the entire configured directory.  
 Also back up any environment file and secrets separately and securely.  
 See [Backups](Backups).
 

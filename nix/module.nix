@@ -52,6 +52,16 @@ in
       description = "Port on which TREK listens.";
     };
 
+    stateDir = lib.mkOption {
+      type = lib.types.str;
+      default = "/var/lib/trek";
+      example = "/var/lib/travel/trek";
+      description = ''
+        Absolute state and working directory beneath /var/lib. 
+        Systemd creates it for the service's dynamic user.
+      '';
+    };
+
     settings = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       default = { };
@@ -79,6 +89,16 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = builtins.match "/var/lib/[^/]+(/[^/]+)*" cfg.stateDir != null
+          && builtins.all (part: part != "." && part != "..") (lib.splitString "/" cfg.stateDir)
+          && cfg.stateDir != "/var/lib/private"
+          && !lib.hasPrefix "/var/lib/private/" cfg.stateDir;
+        message = "services.trek.stateDir must be a normalized directory beneath /var/lib, outside /var/lib/private.";
+      }
+    ];
+
     systemd.services.trek = {
       description = "TREK travel planner";
       wantedBy = [ "multi-user.target" ];
@@ -87,14 +107,14 @@ in
         NODE_ENV = "production";
         HOST = cfg.host;
         PORT = toString cfg.port;
-        TREK_STATE_DIR = "/var/lib/trek";
+        TREK_STATE_DIR = cfg.stateDir;
       };
       serviceConfig = {
         ExecStart = lib.getExe cfg.package;
         DynamicUser = true;
-        StateDirectory = "trek";
+        StateDirectory = lib.removePrefix "/var/lib/" cfg.stateDir;
         StateDirectoryMode = "0700";
-        WorkingDirectory = "/var/lib/trek";
+        WorkingDirectory = cfg.stateDir;
         Restart = "on-failure";
         UMask = "0077";
         ProtectSystem = "strict";

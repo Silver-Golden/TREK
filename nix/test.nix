@@ -25,6 +25,7 @@ testers.runNixOSTest {
       enable = true;
       package = trekPackage;
       port = 3201;
+      stateDir = "/var/lib/travel/trek";
       environmentFile = "/run/trek-test-secrets/current/trek.env";
       settings.TREK_SERVICES = "off";
     };
@@ -39,9 +40,9 @@ testers.runNixOSTest {
     machine.wait_until_succeeds("curl -fsS http://127.0.0.1:3201/api/health/ready | grep -q '\"ready\"'", timeout=180)
     machine.succeed("curl -fsS http://127.0.0.1:3201/ | grep -q '<div id=\"root\">'")
     machine.succeed("systemctl show trek.service -p DynamicUser --value | grep -qx yes")
-    machine.succeed("test -s /var/lib/trek/data/travel.db && test -d /var/lib/trek/uploads")
-    machine.succeed("sqlite3 /var/lib/trek/data/travel.db \"SELECT email FROM users WHERE email = 'admin@example.test'\" | grep -qx admin@example.test")
-    keys = machine.succeed("sha256sum /var/lib/trek/data/.jwt_secret /var/lib/trek/data/.encryption_key")
+    machine.succeed("test -s /var/lib/travel/trek/data/travel.db && test -d /var/lib/travel/trek/uploads")
+    machine.succeed("sqlite3 /var/lib/travel/trek/data/travel.db \"SELECT email FROM users WHERE email = 'admin@example.test'\" | grep -qx admin@example.test")
+    keys = machine.succeed("sha256sum /var/lib/travel/trek/data/.jwt_secret /var/lib/travel/trek/data/.encryption_key")
     def wait_for_restart(pid, value):
         machine.wait_until_succeeds(f"test $(systemctl show trek.service -p MainPID --value) -gt 0 && test $(systemctl show trek.service -p MainPID --value) != {pid}", timeout=180)
         machine.wait_for_unit("trek.service")
@@ -58,8 +59,8 @@ testers.runNixOSTest {
     pid = wait_for_restart(pid, "rotated")
     machine.succeed("cp /run/trek-test-secrets/current/trek.env /run/trek-test-secrets/current/new.env; mv -f /run/trek-test-secrets/current/new.env /run/trek-test-secrets/current/trek.env")
     wait_for_restart(pid, "rotated")
-    assert machine.succeed("sha256sum /var/lib/trek/data/.jwt_secret /var/lib/trek/data/.encryption_key") == keys
-    machine.succeed("sqlite3 /var/lib/trek/data/travel.db \"SELECT email FROM users WHERE email = 'admin@example.test'\" | grep -qx admin@example.test")
+    assert machine.succeed("sha256sum /var/lib/travel/trek/data/.jwt_secret /var/lib/travel/trek/data/.encryption_key") == keys
+    machine.succeed("sqlite3 /var/lib/travel/trek/data/travel.db \"SELECT email FROM users WHERE email = 'admin@example.test'\" | grep -qx admin@example.test")
     machine.succeed("systemctl stop trek.service")
     invocation = machine.succeed("systemctl show trek-environment.service -p InvocationID --value").strip()
     machine.succeed("printf '\\nTREK_TEST_VALUE=stopped\\n' >> /run/trek-test-secrets/current/trek.env")
