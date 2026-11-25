@@ -395,6 +395,7 @@ export function deriveDb(raw: RawEnv) {
 export function derivePaths(raw: RawEnv) {
   return {
     wikiDir: raw.TREK_WIKI_DIR,
+    stateDir: raw.TREK_STATE_DIR?.trim() || undefined,
   };
 }
 

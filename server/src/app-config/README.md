@@ -57,7 +57,7 @@ tokens, `RuntimeEnvService`) and consumes the SAME derive functions.
 ## data-paths.ts: the one data layout
 
 `resolveDataPaths()` is the only place the server anchors `data/` and
-`uploads/` (on `SERVER_ROOT`, the package directory, never on `process.cwd()`)
+`uploads/` (on `TREK_STATE_DIR` when set, otherwise `SERVER_ROOT`, the package directory, never on `process.cwd()`)
 and names what lives in them: backups, the scratch dir, the logs, the JWT
 secret and encryption key files, the install id file the storage reclaim
 tells a copied database apart by, the reset file a restore leaves for it, and

@@ -54,19 +54,19 @@ export interface DataPaths {
 /**
  * The data layout, derived from the server root and the live environment.
  *
- * The only variable involved is TREK_DB_FILE, read through `readEnv()` like
- * every other live value, so a test that points it somewhere else is seen on
- * the next call. Nothing here touches the disk: creating a directory is the
- * caller's decision.
+ * TREK_STATE_DIR moves both data/ and uploads/ together; TREK_DB_FILE can
+ * independently move the database.
+ * Nothing here touches the disk.
  */
 export function resolveDataPaths(
-  env: { db: Pick<AppEnv['db'], 'trekDbFile'> } = readEnv(),
+  env: { db: Pick<AppEnv['db'], 'trekDbFile'>; paths?: Pick<AppEnv['paths'], 'stateDir'> } = readEnv(),
   root: string = SERVER_ROOT,
 ): DataPaths {
-  const dataDir = path.join(root, 'data');
+  const stateRoot = env.paths?.stateDir || root;
+  const dataDir = path.join(stateRoot, 'data');
   return {
     dataDir,
-    uploadsDir: path.join(root, 'uploads'),
+    uploadsDir: path.join(stateRoot, 'uploads'),
     backupsDir: path.join(dataDir, 'backups'),
     tmpDir: path.join(dataDir, 'tmp'),
     logsDir: path.join(dataDir, 'logs'),

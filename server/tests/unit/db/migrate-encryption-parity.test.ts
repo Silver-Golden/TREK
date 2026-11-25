@@ -205,6 +205,8 @@ describe('migrate-encryption.ts storage.backends: malformed shape', () => {
   });
 
   it('ROTPAR-005: reports an error instead of silently skipping a non-array storage.backends value', () => {
+    fs.mkdirSync(path.join(tmpDir, 'data'));
+    dbPath = path.join(tmpDir, 'data', 'travel.db');
     const seed = new Database(dbPath);
     seed.exec(`
       CREATE TABLE users (
@@ -230,7 +232,7 @@ describe('migrate-encryption.ts storage.backends: malformed shape', () => {
     try {
       const stdout = execFileSync(process.execPath, ['--import', 'tsx', 'scripts/migrate-encryption.ts'], {
         cwd: SERVER_ROOT,
-        env: { ...process.env, DB_PATH: dbPath },
+        env: { ...process.env, DB_PATH: undefined, TREK_STATE_DIR: tmpDir },
         input: 'old-key\nnew-key\nyes\n',
         stdio: 'pipe',
         encoding: 'utf8',

@@ -65,7 +65,12 @@ function resetOnSqlite() {
     console.warn(`TREK_DB_SYNCHRONOUS="${process.env.TREK_DB_SYNCHRONOUS}" is not a SQLite synchronous level — using ${synchronous}.`);
   }
 
-  const dbPath = process.env.TREK_DB_FILE || path.join(__dirname, 'data/travel.db');
+  const stateDir = process.env.TREK_STATE_DIR?.trim();
+  if (stateDir && !path.isAbsolute(stateDir)) {
+    console.error('TREK_STATE_DIR must be an absolute path.');
+    process.exit(1);
+  }
+  const dbPath = process.env.TREK_DB_FILE || path.join(stateDir || __dirname, 'data/travel.db');
   // SQLite silently opens an unwritable file read-only (#2933); db.readonly can't tell.
   const notWritable = [dbPath, path.dirname(dbPath)].find((p) => {
     if (!fs.existsSync(p)) return false;

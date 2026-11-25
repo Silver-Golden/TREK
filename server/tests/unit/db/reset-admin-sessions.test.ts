@@ -88,6 +88,26 @@ function read<T>(sql: string): T[] {
 }
 
 describe('reset-admin.js and user_sessions', () => {
+  it('finds the database under TREK_STATE_DIR when TREK_DB_FILE is unset', () => {
+    fs.mkdirSync(path.join(tmpDir, 'data'));
+    dbPath = path.join(tmpDir, 'data', 'travel.db');
+    seed(false);
+    execFileSync(process.execPath, ['reset-admin.js'], {
+      cwd: SERVER_ROOT,
+      env: {
+        ...process.env,
+        TREK_STATE_DIR: tmpDir,
+        TREK_DB_FILE: '',
+        RESET_ADMIN_EMAIL: 'boss@example.com',
+        RESET_ADMIN_PASSWORD: 'Recovery12345!',
+      },
+      stdio: 'pipe',
+    });
+    expect(read('SELECT role, password_version FROM users WHERE id = 1')).toEqual([
+      { role: 'admin', password_version: 3 },
+    ]);
+  }, 60000);
+
   it("RESETADMIN-SESS-001: ends every live session of the account it resets, and nobody else's", () => {
     seed(true);
 

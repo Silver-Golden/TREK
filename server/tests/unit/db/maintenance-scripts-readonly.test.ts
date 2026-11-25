@@ -64,6 +64,18 @@ const resetAdmin = () => run(['reset-admin.js'], { TREK_DB_FILE: dbPath, RESET_A
 const migrateEncryption = () =>
   run(['--import', 'tsx', 'scripts/migrate-encryption.ts'], { DB_PATH: dbPath }, 'old-key\nnew-key\nyes\n');
 
+describe('maintenance scripts with an invalid state directory', () => {
+  it.each([['reset-admin.js'], ['--import', 'tsx', 'scripts/migrate-encryption.ts']])(
+    'refuses a relative TREK_STATE_DIR before opening a database (%s)',
+    (...args) => {
+      const r = run(args, { TREK_STATE_DIR: 'relative/path', TREK_DB_FILE: dbPath, DB_PATH: dbPath });
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain('TREK_STATE_DIR must be an absolute path.');
+    },
+    60000,
+  );
+});
+
 describe.skipIf(isRoot)('maintenance scripts on a database they cannot write', () => {
   it('READONLY-001: reset-admin.js refuses a read-only file and names the user to run as', () => {
     fs.chmodSync(dbPath, 0o444);

@@ -864,6 +864,11 @@ async function mainPostgres(): Promise<void> {
 async function main() {
   // The server reads its .env too (index.ts), so TREK_DB_URL kept there picks the same database here.
   loadDotenv({ path: path.join(__dirname, '../.env'), quiet: true });
+  const stateDir = process.env.TREK_STATE_DIR?.trim();
+  if (stateDir && !path.isAbsolute(stateDir)) {
+    console.error('TREK_STATE_DIR must be an absolute path.');
+    process.exit(1);
+  }
   openPrompts();
   console.log('=== TREK Encryption Key Migration ===\n');
   console.log('This script re-encrypts all stored secrets under a new ENCRYPTION_KEY.');
@@ -879,7 +884,7 @@ async function main() {
   }
 
   // The file the server opens: TREK_DB_FILE, else data/travel.db. DB_PATH names it for this script alone.
-  const dataDir = path.join(__dirname, '../data');
+  const dataDir = path.join(stateDir || path.join(__dirname, '..'), 'data');
   const scriptDbPath = process.env.DB_PATH?.trim();
   const serverDbFile = process.env.TREK_DB_FILE?.trim();
   if (scriptDbPath && serverDbFile && path.resolve(scriptDbPath) !== path.resolve(serverDbFile)) {
