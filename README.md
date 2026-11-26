@@ -250,7 +250,7 @@ Open `http://localhost:3000`, or `http://<server-ip>:3000` from another machine.
 
 <div align="center">
 
-<a href="#docker-compose-production">Docker Compose</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#helm-kubernetes">Helm / Kubernetes</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="nix/README.md">Nix / NixOS</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#reverse-proxy">Reverse Proxy</a>
+<a href="#docker-compose-production">Docker Compose</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#helm-kubernetes">Helm / Kubernetes</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#nix-nixos">Nix / NixOS</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#reverse-proxy">Reverse Proxy</a>
 
 </div>
 
@@ -304,6 +304,13 @@ helm install trek trek/trek
 ```
 
 See [`charts/README.md`](https://github.com/liketrek/TREK/blob/main/charts/README.md) for values.
+
+<br />
+
+<h2 id="nix-nixos">Nix / NixOS</h2>
+
+See the [NixOS installation guide](https://github.com/liketrek/TREK/wiki/Install-NixOS) for installation and configuration.  
+For development and package testing, see the [Nix README](nix/README.md).
 
 <br />
 
