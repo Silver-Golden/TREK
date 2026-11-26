@@ -6,6 +6,28 @@
 }:
 let
   cfg = config.services.trek;
+
+  fingerprint = pkgs.writeShellScript "trek-environment-fingerprint" ''
+    set -eu
+    ${pkgs.coreutils}/bin/stat -L --printf='%d:%i:%s:%y:%z\n' ${lib.escapeShellArg cfg.environmentFile}
+    ${pkgs.coreutils}/bin/sha256sum < ${lib.escapeShellArg cfg.environmentFile}
+  '';
+  recordEnvironment = pkgs.writeShellScript "trek-environment-record" ''
+    set -eu
+    umask 077
+    ${fingerprint} > /run/trek-environment/fingerprint
+  '';
+  checkEnvironment = pkgs.writeShellScript "trek-environment-check" ''
+    set -eu
+    if ! ${pkgs.systemd}/bin/systemctl is-active --quiet trek.service; then
+      exit 0
+    fi
+    current="$(${fingerprint})"
+    previous="$(${pkgs.coreutils}/bin/cat /run/trek-environment/fingerprint)"
+    if [ "$current" != "$previous" ]; then
+      ${pkgs.systemd}/bin/systemctl try-restart trek.service
+    fi
+  '';
 in
 {
   options.services.trek = {
@@ -51,6 +73,7 @@ in
       description = ''
         Path to a systemd EnvironmentFile containing secrets.
         Not copied into the Nix store.
+        Changes are checked periodically and restart the running service.
       '';
     };
   };
@@ -79,6 +102,29 @@ in
         PrivateTmp = true;
       } // lib.optionalAttrs (cfg.environmentFile != null) {
         EnvironmentFile = cfg.environmentFile;
+        ExecStartPre = "+${recordEnvironment}";
+      };
+    };
+
+    systemd.tmpfiles.rules = lib.optionals (cfg.environmentFile != null) [
+      "d /run/trek-environment 0700 root root -"
+    ];
+
+    systemd.timers.trek-environment = lib.mkIf (cfg.environmentFile != null) {
+      description = "Check the TREK environment file";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "1min";
+        OnUnitInactiveSec = "1min";
+        AccuracySec = "1s";
+      };
+    };
+
+    systemd.services.trek-environment = lib.mkIf (cfg.environmentFile != null) {
+      description = "Check for TREK environment file changes";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = checkEnvironment;
       };
     };
   };

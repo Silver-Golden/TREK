@@ -89,11 +89,9 @@ To choose the initial administrator, include both `ADMIN_EMAIL` and `ADMIN_PASSW
 
 Environment-file values take precedence over `settings`.  
 Do not set `TREK_STATE_DIR`, `NODE_ENV`, `HOST` or `PORT` there, as the module manages them.  
-Restart the service after updating the secret:
-
-```bash
-sudo systemctl restart trek
-```
+TREK checks the environment file approximately once a minute and restarts if the file or its contents change.  
+A manually stopped service remains stopped.  
+If the file cannot be read, the check logs an error and retries.
 
 See [Environment-Variables](Environment-Variables) for the available settings.  
 The optional KItinerary booking extractor is not bundled.  
