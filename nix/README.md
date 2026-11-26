@@ -41,4 +41,4 @@ nix build --no-link -L .#checks.x86_64-linux.nixos
 The [test workflow](../.github/workflows/test.yml) runs the command in [Testing](#testing).  
 It fails if `npmDepsHash` does not match the dependencies.
 It restores a Nix store cache and saves it only on pushes to `dev` or `main`.  
-The VM test runs again even when its previous result is cached.
+The VM test result is reused when it is already available in the Nix store.

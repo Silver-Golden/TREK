@@ -1500,7 +1500,7 @@ jobs:
         id: nix-cache
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock', 'package-lock.json', 'nix/package.nix') }}
+          primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock', 'package-lock.json', 'nix/package.nix') }}-${{ github.sha }}
           restore-prefixes-first-match: nix-${{ runner.os }}-${{ runner.arch }}-
       - name: Keep package dependencies in the cache
         run: |
@@ -1508,17 +1508,12 @@ jobs:
           nix build --out-link "$RUNNER_TEMP/trek-package" .#trek
       - name: Build TREK and test its NixOS service
         run: |
-          if nix path-info --offline .#checks.x86_64-linux.nixos >/dev/null 2>&1; then
-            nix build --rebuild --out-link "$RUNNER_TEMP/trek-nixos-test" -L .#checks.x86_64-linux.nixos
-          else
-            nix build --out-link "$RUNNER_TEMP/trek-nixos-test" -L .#checks.x86_64-linux.nixos
-          fi
+          nix build --out-link "$RUNNER_TEMP/trek-nixos-test" -L .#checks.x86_64-linux.nixos
       - name: Save Nix store
-        if: steps.nix-cache.outputs.hit-primary-key != 'true' && github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')
         uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ steps.nix-cache.outputs.primary-key }}
-          gc-max-store-size-linux: 3G
 
   # The single check the branch ruleset requires. It needs every job that
   # gates a merge, so listing a job here is what makes it required. The scan
