@@ -1,3 +1,4 @@
+import { SERVER_ROOT } from '../../../../src/app-config/data-paths';
 import { deriveDb } from '../../../../src/app-config/derive';
 import { buildOrmConfig, resolveEngine } from '../../../../src/db/engine';
 import { TrekPostgreSqlDriver } from '../../../../src/db/engine/postgres/postgres-driver';
@@ -111,6 +112,7 @@ describe('buildOrmConfig', () => {
     const config = buildOrmConfig(resolveEngine());
     expect(config.driver).toBe(SharedSqliteDriver);
     expect(config.dbName).toBe(':memory:');
+    expect(config.baseDir).toBe(SERVER_ROOT);
     expect(config.migrations).toMatchObject({ pathTs: 'src/db/migrations', snapshot: false });
     expect(config.seeder).toMatchObject({ defaultSeeder: 'DatabaseSeeder' });
     expect(Array.isArray(config.entities) && config.entities.length).toBeGreaterThan(100);
@@ -120,6 +122,7 @@ describe('buildOrmConfig', () => {
     const config = buildOrmConfig(resolveEngine(deriveDb({ TREK_DB_URL: PG_URL })));
     expect(config.driver).toBe(TrekPostgreSqlDriver);
     expect(config.clientUrl).toBe(PG_URL);
+    expect(config.baseDir).toBe(SERVER_ROOT);
     expect(config.migrations).toMatchObject({ pathTs: 'src/db/migrations', snapshot: false });
     expect(config.entities).toBe(buildOrmConfig(resolveEngine()).entities);
   });

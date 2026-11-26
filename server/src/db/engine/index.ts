@@ -1,4 +1,5 @@
 import { readEnv } from '../../app-config';
+import { SERVER_ROOT } from '../../app-config/data-paths';
 import type { DbEngineSettings } from '../../app-config/db-settings';
 import type { DbSettings } from '../../app-config/derive';
 import { ALL_ENTITIES } from '../entities';
@@ -54,6 +55,7 @@ export function assertSqliteOrmConfig(config: Options, refusal: string): void {
  */
 export function buildOrmConfig(engine: DatabaseEngine): Options {
   return defineConfig({
+    baseDir: SERVER_ROOT,
     entities: ALL_ENTITIES,
     extensions: [Migrator, SeedManager],
     migrations: {

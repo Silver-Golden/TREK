@@ -1,16 +1,38 @@
 {
   testers,
+  lib,
+  pkgs,
   nodejs_24,
   postgresql_18,
   trekModule,
   trekPackage,
 }:
-
+let
+  evaluate = options: (import "${pkgs.path}/nixos/lib/eval-config.nix" {
+    system = pkgs.stdenv.hostPlatform.system;
+    modules = [
+      trekModule
+      { system.stateVersion = "26.05"; services.trek = { enable = true; } // options; }
+    ];
+  }).config;
+  validStateDir = path:
+    let c = evaluate { stateDir = path; };
+    in builtins.all (a: a.assertion || !(lib.hasPrefix "services.trek.stateDir " a.message)) c.assertions;
+  defaultConfig = evaluate { };
+in
+assert defaultConfig.services.trek.stateDir == "/var/lib/trek";
+assert defaultConfig.systemd.services.trek.serviceConfig.StateDirectory == "trek";
+assert defaultConfig.systemd.services.trek.serviceConfig.WorkingDirectory == "/var/lib/trek";
+assert !(builtins.hasAttr "trek-environment" defaultConfig.systemd.timers);
+assert !(builtins.hasAttr "trek-environment" defaultConfig.systemd.services);
+assert builtins.all validStateDir [ "/var/lib/trek" "/var/lib/travel/trek" "/var/lib/trek-v2/test_1" ];
+assert builtins.all (path: !validStateDir path) [ "" "/var/lib" "/tmp/trek" "/var/lib/../trek" "/var/lib/./trek" "/var/lib/trek/" "/var/lib//trek" "/var/lib/private" "/var/lib/private/trek" "/var/lib/trek:other" "/var/lib/trek%h" "/var/lib/trek data" ];
 testers.runNixOSTest {
   name = "trek-service";
 
   nodes.machine = { pkgs, ... }: {
     imports = [ trekModule ];
+    system.stateVersion = "26.05";
     environment.systemPackages = [ pkgs.curl pkgs.sqlite ];
     systemd.tmpfiles.rules = [
       "d /run/trek-test-secrets 0700 root root -"
@@ -27,6 +49,7 @@ testers.runNixOSTest {
       enable = true;
       package = trekPackage;
       port = 3201;
+      stateDir = "/var/lib/travel/trek";
       environmentFile = "/run/trek-test-secrets/current/trek.env";
       settings.TREK_SERVICES = "off";
     };
@@ -41,12 +64,15 @@ testers.runNixOSTest {
     machine.wait_until_succeeds("curl -fsS http://127.0.0.1:3201/api/health/ready | grep -q '\"ready\"'", timeout=180)
     machine.succeed("curl -fsS http://127.0.0.1:3201/ | grep -q '<div id=\"root\">'")
     machine.succeed("systemctl show trek.service -p DynamicUser --value | grep -qx yes")
+    machine.succeed("systemctl show trek.service -p WorkingDirectory --value | grep -Fx /var/lib/travel/trek")
+    machine.succeed("test \"$(stat -Lc '%d:%i' /proc/$(systemctl show trek.service -p MainPID --value)/cwd)\" = \"$(stat -Lc '%d:%i' /var/lib/travel/trek)\"")
+    machine.succeed("grep -zqx 'TREK_STATE_DIR=/var/lib/travel/trek' /proc/$(systemctl show trek.service -p MainPID --value)/environ")
     machine.succeed("grep -zqx 'TREK_DB_PG_BIN_DIR=${postgresql_18}/bin' /proc/$(systemctl show trek.service -p MainPID --value)/environ")
     machine.succeed("${postgresql_18}/bin/pg_dump --version && ${postgresql_18}/bin/pg_restore --version && ${postgresql_18}/bin/psql --version")
     machine.succeed("cd ${trekPackage}/lib/trek/server && ! env TREK_STATE_DIR=relative ${nodejs_24}/bin/node --import tsx scripts/migrate-encryption.ts > /tmp/trek-migration-test.log 2>&1 && grep -q 'TREK_STATE_DIR must be an absolute path' /tmp/trek-migration-test.log")
-    machine.succeed("test -s /var/lib/trek/data/travel.db && test -d /var/lib/trek/uploads")
-    machine.succeed("sqlite3 /var/lib/trek/data/travel.db \"SELECT email FROM users WHERE email = 'admin@example.test'\" | grep -qx admin@example.test")
-    keys = machine.succeed("sha256sum /var/lib/trek/data/.jwt_secret /var/lib/trek/data/.encryption_key")
+    machine.succeed("test -s /var/lib/travel/trek/data/travel.db && test -d /var/lib/travel/trek/uploads")
+    machine.succeed("sqlite3 /var/lib/travel/trek/data/travel.db \"SELECT email FROM users WHERE email = 'admin@example.test'\" | grep -qx admin@example.test")
+    keys = machine.succeed("sha256sum /var/lib/travel/trek/data/.jwt_secret /var/lib/travel/trek/data/.encryption_key")
     def wait_for_restart(pid, value):
         machine.wait_until_succeeds(f"test $(systemctl show trek.service -p MainPID --value) -gt 0 && test $(systemctl show trek.service -p MainPID --value) != {pid}", timeout=180)
         machine.wait_for_unit("trek.service")
@@ -68,8 +94,8 @@ testers.runNixOSTest {
     machine.succeed(f"test $(systemctl show trek.service -p MainPID --value) = {pid}")
     machine.succeed("mv /run/trek-test-secrets/current/held.env /run/trek-test-secrets/current/trek.env")
     wait_for_restart(pid, "rotated")
-    assert machine.succeed("sha256sum /var/lib/trek/data/.jwt_secret /var/lib/trek/data/.encryption_key") == keys
-    machine.succeed("sqlite3 /var/lib/trek/data/travel.db \"SELECT email FROM users WHERE email = 'admin@example.test'\" | grep -qx admin@example.test")
+    assert machine.succeed("sha256sum /var/lib/travel/trek/data/.jwt_secret /var/lib/travel/trek/data/.encryption_key") == keys
+    machine.succeed("sqlite3 /var/lib/travel/trek/data/travel.db \"SELECT email FROM users WHERE email = 'admin@example.test'\" | grep -qx admin@example.test")
     machine.succeed("systemctl stop trek.service")
     invocation = machine.succeed("systemctl show trek-environment.service -p InvocationID --value").strip()
     machine.succeed("printf '\\nTREK_TEST_VALUE=stopped\\n' >> /run/trek-test-secrets/current/trek.env")

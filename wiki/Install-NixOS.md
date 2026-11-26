@@ -98,7 +98,10 @@ The optional KItinerary booking extractor is not bundled.
 Install it separately and set `KITINERARY_EXTRACTOR_PATH` to its executable to enable it.
 
 ## Backups and Updates
-Back up the entire `/var/lib/trek` directory, which contains the database, encryption and session keys, plugins, backups and uploads.  
+TREK stores its database, encryption and session keys, plugins, backups and uploads under `/var/lib/trek` by default.  
+Set `services.trek.stateDir` to another normalized directory beneath `/var/lib` to change both the state and working directory.  
+The directory must be outside `/var/lib/private`, and its components may contain ASCII letters, digits, dots, underscores and hyphens.  
+Back up the entire configured directory.  
 Also back up any environment file and secrets separately and securely.  
 See [Backups](Backups).
 

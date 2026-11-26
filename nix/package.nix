@@ -75,9 +75,10 @@ buildNpmPackage {
     cp -r client/public/fonts/. "$out/lib/trek/server/public/fonts/"
     cp -r wiki "$out/lib/trek/"
     makeWrapper ${nodejs_24}/bin/node "$out/bin/trek" \
-      --chdir "$out/lib/trek/server" \
       --set-default NODE_ENV production \
       --set-default TREK_DB_PG_BIN_DIR "${postgresql_18}/bin" \
+      --set-default TS_NODE_PROJECT "$out/lib/trek/server/tsconfig.json" \
+      --set-default DOTENV_CONFIG_PATH "$out/lib/trek/server/.env" \
       --run 'if [ -z "''${TREK_STATE_DIR:-}" ]; then if [ -n "''${XDG_STATE_HOME:-}" ]; then export TREK_STATE_DIR="$XDG_STATE_HOME/trek"; elif [ -n "''${HOME:-}" ]; then export TREK_STATE_DIR="$HOME/.local/state/trek"; else echo "Set TREK_STATE_DIR to a writable absolute directory" >&2; exit 1; fi; fi' \
       --add-flags "--require $out/lib/trek/node_modules/tsconfig-paths/register" \
       --add-flags "$out/lib/trek/server/dist/index.js"
