@@ -97,6 +97,41 @@ See [Environment-Variables](Environment-Variables) for the available settings.
 The optional KItinerary booking extractor is not bundled.  
 Install it separately and set `KITINERARY_EXTRACTOR_PATH` to its executable to enable it.
 
+## PostgreSQL
+By default, the module enables the local NixOS PostgreSQL service and provisions a `trek` database and a non-superuser `trek` role.  
+TREK connects through a Unix socket using peer authentication and waits for database provisioning before starting.  
+The managed server must be PostgreSQL 14 through 18.  
+The module preserves the host's `services.postgresql.package` setting, including the default chosen by NixOS from `system.stateVersion`.  
+To select PostgreSQL 18, set `services.postgresql.package = pkgs.postgresql_18;`.
+
+This package setting affects the host's entire PostgreSQL service, not just TREK.  
+Upgrade PostgreSQL using its documented migration procedure when changing major versions.  
+If a database or role named `trek` already exists, NixOS reuses it, changes the database owner to `trek`, and updates the role's login and privilege attributes.  
+Check for name collisions before enabling the module.
+
+The module uses the first entry in `services.postgresql.settings.unix_socket_directories`, or `/run/postgresql` when unset.  
+The selected directory must be an absolute path using ASCII letters, digits, dots, underscores, slashes or hyphens, and must be writable by PostgreSQL and accessible to TREK.  
+The configured PostgreSQL port is used automatically.  
+Host PostgreSQL authentication must permit peer access for the `trek` user.
+
+To connect to an existing PostgreSQL server instead, set `services.trek.database = "external-postgresql";` and provide `TREK_DB_URL` through `services.trek.environmentFile`.  
+The service refuses to start without a nonempty URL and does not fall back to SQLite.  
+Do not set `TREK_DB_URL` when local management is enabled.  
+The external server must run PostgreSQL 14 through 18.  
+Its version cannot be checked by a Nix evaluation assertion, and TREK checks it during normal database startup.  
+See [Database-Postgres](Database-Postgres) for connection security, backups and PostgreSQL requirements.
+
+To retain SQLite, set `services.trek.database = "sqlite";`.  
+When switching to PostgreSQL, TREK automatically migrates an existing SQLite database into an empty PostgreSQL database without deleting the SQLite source.  
+An existing `TREK_DB_FILE` selects the SQLite source; SQLite journal and synchronous settings do not apply to PostgreSQL.  
+Back up state and secrets independently before switching.  
+Stop any other process that writes to the SQLite, plugin or PostgreSQL databases before switching, and keep it stopped during migration.  
+Update an outdated SQLite database on SQLite first, and do not configure `RESTORE_FROM_BACKUP` at the same time as an existing SQLite database.  
+If the target is not empty, the service skips the move and starts on PostgreSQL, even when it contains unrelated data or an interrupted migration.  
+Check the target before switching; an existing SQLite source does not prove that its data reached PostgreSQL.  
+The existing move command removes the schema it created on an ordinary failure, and a failure after an ambiguous commit can remove a completed copy.  
+Changes to SQLite after switching are not automatically copied to PostgreSQL.
+
 ## Backups and Updates
 TREK stores its database, encryption and session keys, plugins, backups and uploads under `/var/lib/trek` by default.  
 Set `services.trek.stateDir` to another normalized directory beneath `/var/lib` to change both the state and working directory.  

@@ -82,6 +82,12 @@ buildNpmPackage {
       --run 'if [ -z "''${TREK_STATE_DIR:-}" ]; then if [ -n "''${XDG_STATE_HOME:-}" ]; then export TREK_STATE_DIR="$XDG_STATE_HOME/trek"; elif [ -n "''${HOME:-}" ]; then export TREK_STATE_DIR="$HOME/.local/state/trek"; else echo "Set TREK_STATE_DIR to a writable absolute directory" >&2; exit 1; fi; fi' \
       --add-flags "--require $out/lib/trek/node_modules/tsconfig-paths/register" \
       --add-flags "$out/lib/trek/server/dist/index.js"
+    makeWrapper ${nodejs_24}/bin/node "$out/bin/trek-move-to-postgres" \
+      --set-default NODE_ENV production \
+      --set-default TS_NODE_PROJECT "$out/lib/trek/server/tsconfig.json" \
+      --set-default DOTENV_CONFIG_PATH "$out/lib/trek/server/.env" \
+      --add-flags "--require $out/lib/trek/node_modules/tsconfig-paths/register" \
+      --add-flags "$out/lib/trek/server/dist/move-to-postgres.js"
     runHook postInstall
   '';
 

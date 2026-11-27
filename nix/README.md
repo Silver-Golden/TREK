@@ -21,6 +21,9 @@ Production defaults require secure cookies, so deploy behind HTTPS, for local HT
 ### NixOS
 See the [NixOS installation guide](../wiki/Install-NixOS.md) for service configuration, secrets, backups and updates.
 
+The NixOS service provisions PostgreSQL by default and migrates an existing SQLite installation on first startup.  
+Set `services.trek.database` to `"external-postgresql"` or `"sqlite"` to choose another backend.
+
 PostgreSQL 18 client tools are included for database backups and restores.  
 Set `TREK_DB_PG_BIN_DIR` to use a different installation.
 
